@@ -1,15 +1,27 @@
 'use client';
 import { CardWrapper } from '@/components/auth/card-wrapper';
 import { SubmitButton } from '@/components/auth/submit-button';
+import FormError from '@/components/form-error';
+import { FormSuccess } from '@/components/form-success';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { RegisterSchema } from '@/schemas/form-schema';
 import { zodResolver } from '@hookform/resolvers/zod';
-import React, { useTransition } from 'react';
+import { signIn, useSession } from 'next-auth/react';
+import { redirect } from 'next/navigation';
+import React, { useEffect, useState, useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
 export default function RegisterForm() {
+  const session = useSession();
+  useEffect(() => {
+    if (session.status === 'authenticated') {
+      redirect('/');
+    }
+  }, [session]);
+  const [error, setError] = useState<string>('');
+  const [success, setSuccess] = useState<string>('');
   const form = useForm<z.infer<typeof RegisterSchema>>({
     resolver: zodResolver(RegisterSchema),
     defaultValues: {
@@ -20,17 +32,34 @@ export default function RegisterForm() {
   });
   const [isPending, startTransition] = useTransition();
   const onSubmit = async (data: z.infer<typeof RegisterSchema>) => {
+    setSuccess('');
+    setError('');
     startTransition(async () => {
-      // const res = await fetch('/api/auth/register', {
-      //   method: 'POST',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //   },
-      //   body: JSON.stringify(data),
-      // });
-      // if (res.ok) {
-      // }
-      console.log(data);
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        setError(err.error.message);
+        setSuccess('');
+        return;
+      }
+      const res2 = await signIn('credentials', {
+        email: data.email,
+        password: data.password,
+        redirect: false,
+      });
+      if (!res2 || !res2.ok) {
+        setSuccess('');
+        setError(res2?.error || 'Something went wrong!');
+        return;
+      }
+      setError('');
+      setSuccess('Success!');
     });
   };
   return (
@@ -87,7 +116,8 @@ export default function RegisterForm() {
                 <FormMessage></FormMessage>
               </FormItem>
             )}></FormField>
-
+          <FormSuccess message={success} />
+          <FormError message={error} />
           <SubmitButton isPending={isPending}>Register</SubmitButton>
         </form>
       </Form>

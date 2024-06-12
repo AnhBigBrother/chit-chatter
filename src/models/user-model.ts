@@ -1,5 +1,5 @@
 import { AppError } from '@/utils/app-error';
-import { MongoClient } from 'mongodb';
+import { MongoClient, ObjectId } from 'mongodb';
 import { z } from 'zod';
 import { fromZodError } from 'zod-validation-error';
 
@@ -9,10 +9,12 @@ const userCollection = new MongoClient(dbUri!).db(dbName).collection('users');
 
 const UserSchema = z
   .object({
-    username: z.string().min(3),
+    name: z.string().min(3),
     password: z.string().min(6),
     email: z.string().email(),
-    chats: z.array(z.string()).default([]),
+    picture: z.string().default(''),
+    socialAuthProvider: z.boolean().default(false),
+    chats: z.array(z.instanceof(ObjectId)).default([]),
   })
   .strict();
 
@@ -22,13 +24,28 @@ type UserType = z.infer<typeof UserSchemaPartial>;
 const UserModel = Object.create(userCollection);
 
 UserModel.validate = (data: UserType) => {
+  if (data.chats) {
+    const objectIdChats: ObjectId[] = [];
+    for (let c of data.chats) {
+      objectIdChats.push(new ObjectId(c));
+    }
+    data.chats = objectIdChats;
+  }
   const result = UserSchema.required().safeParse(data);
   if (!result.success) {
     throw new AppError(400, fromZodError(result.error).toString(), result.error.issues);
   }
   return result.data;
 };
-UserModel.validateData = (data: UserType) => {
+
+UserModel.partialValidate = (data: UserType) => {
+  if (data.chats) {
+    const objectIdChats: ObjectId[] = [];
+    for (let c of data.chats) {
+      objectIdChats.push(new ObjectId(c));
+    }
+    data.chats = objectIdChats;
+  }
   const result = UserSchemaPartial.safeParse(data);
   if (!result.success) {
     throw new AppError(400, fromZodError(result.error).toString(), result.error.issues);

@@ -1,8 +1,9 @@
 import { UserModel } from '@/models/user-model';
 import { AppError } from '@/utils/app-error';
-import { FunctionWrapper } from '@/utils/function-wrapper';
+import { ControllerWrapper } from '@/utils/controller-wrapper';
+import bcrypt from 'bcrypt';
 
-export const POST = FunctionWrapper(async (req: Request, res: Response) => {
+export const POST = ControllerWrapper(async (req: Request, res: Response) => {
   const body = await req.json();
   const data = UserModel.validate(body);
 
@@ -11,7 +12,8 @@ export const POST = FunctionWrapper(async (req: Request, res: Response) => {
   if (existingUser) {
     throw new AppError(400, 'Email is already in use');
   }
-  const newUser = await UserModel.insertOne(data);
+  const hashedPwd = await bcrypt.hash(data.password, 10);
+  await UserModel.insertOne({ ...data, password: hashedPwd });
 
-  return { success: true, result: newUser };
+  return { success: true, result: { email: data.email, password: hashedPwd } };
 });

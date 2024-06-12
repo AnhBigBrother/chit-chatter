@@ -3,15 +3,15 @@ import React from 'react';
 
 function FormHeader({ label }: { label: string }) {
   return (
-    <div className='flex flex-col gap-2 items-center justify-center'>
-      <h1 className='text-3xl font-semibold flex gap-3 items-end text-slate-900'>
+    <div className='flex flex-col gap-1 items-center justify-center'>
+      <h1 className='text-3xl font-semibold font- flex gap-1 items-center text-transparent bg-clip-text bg-gradient-to-r from-rose-800 to-rose-400'>
         <Image
           priority
-          src='./hello-chat.svg'
+          src='/favicon.svg'
           alt='favicon'
-          height={32}
-          width={32}></Image>
-        ChitChatter
+          height={36}
+          width={36}></Image>
+        RocketChat
       </h1>
       <p className='text-muted-foreground text-sm'>{label}</p>
     </div>
